@@ -3,6 +3,8 @@
 #include<unistd.h>
 #include<string.h>
 #include<ctype.h>
+#include<sys/types.h>
+#include<sys/wait.h>
 
 
 const char redirec = '>';
@@ -126,15 +128,15 @@ int output(char* file)
 {
     // printf("hii%shii",file);
   fclose(stdout);
-  fclose(stderr);
+//   fclose(stderr);
   if (freopen(file, "w+", stdout) == NULL) return -1;
-  if (freopen(file, "w+", stderr) == NULL) return -1;
+//   if (freopen(file, "w+", stderr) == NULL) return -1;
   return 0;
 }
 
 int decode(char* command){
     // printf("This is each command b%sb\n",command);
-    if(*command == 0 ) return 0;
+    if(*command == 0 ) {error(); return 0;}
 
     int tokensCount=0;
     char** commandDup =NULL;
@@ -142,30 +144,38 @@ int decode(char* command){
 
     if(strchr(command, redirec)!=NULL){
         int tokensOfRedirec = numOfTokens(command, redirection);
-        // printf("%d yes", tokensOfRedirec);
-        if(tokensOfRedirec!=2) return -1;
+        printf("%d yes", tokensOfRedirec);
+        if(tokensOfRedirec!=2) {error(); return 0;}//return -1;
         commandDup = split(command, redirection);
         command = trim(commandDup[0]);
-        // printf("Left command b%sb\n", left);
+        // printf("Left command b%sb\n", command);
+        if(*command==0) {error(); return 0;}
         right = trim(commandDup[1]);
         // printf("File name b%sb\n",right);
-        if(*right==0 || numOfTokens(command, space)!=1) {return -1;}
+        // printf("god %d", numOfTokens(command, space)!=1 );
+
+        if(*right==0 || numOfTokens(right, space)!=1) {error(); }
         // || numOfTokens(command, space)!=1
     }
 
+    // printf("here: b%sb",command);
     tokensCount = numOfTokens(command, space);
     commandDup = malloc((tokensCount+1) * sizeof(int));
     duplicate(split(command, space), commandDup, tokensCount);
     commandDup[tokensCount]=NULL;
     // printf("Trimmed splitted command is inside b%sb\n", commandDup[0]);
     // printf("Trimmed splitted command is inside b%sb\n", commandDup[1]);
-    // printf("Trimmed splitted command is inside b%sb\n", commandDup[2]);
+    // printf("Trimmed splitted command is inside b%lub\n", sizeof(commandDup));
+    // printf("Trimmed splitted command is inside b%lub\n", commandDup[2]);
      if(strcmp(trim(commandDup[0]), "exit")==0){
+        // printf("%s",commandDup[1]);
+        if(commandDup[1]!=NULL) error();
         // printf("Helloooo");
         // exit(0);
-        inbuilt_exit();
+        else inbuilt_exit();
      }else if(strcmp(trim(commandDup[0]),"cd")==0){
         // printf("Heyy");
+        if(commandDup[2]!=NULL) {error(); return 0;}
         inbuilt_cd(commandDup[1]);
      }else if(strcmp(trim(commandDup[0]),"path")==0){
         // printf("entered");
@@ -175,13 +185,14 @@ int decode(char* command){
      }else{
         //  printf("hii%shii",trim(commandDup[0]));
         char* executableFile = findPath(trim(commandDup[0]));
+        if(executableFile==NULL) {error(); return 0;}
         int childPID = fork();
         if(childPID==0){
             if(right!=NULL) output(right);
             // printf("Argument b%sb is\n", commandDup[0]);
             execv(executableFile, commandDup);
         }else{
-            int childProcessID = childPID;
+            // int childProcessID = childPID;
             wait(NULL);
         }
      }
@@ -192,10 +203,21 @@ int decode(char* command){
 void parallelCommands(char* input){
     // printf("This is the command b%sb\n",input);
     int tokens = numOfTokens(input, ampersand);
+    if(tokens==0) {error(); return;}
     char** arrOfCommands = malloc(tokens* sizeof(char*));
     arrOfCommands = split(input, ampersand);
-    for(int i=0;i<tokens;i++){
-        decode(trim(arrOfCommands[i]));
+ int i ;
+    for (i = 0; i < tokens; i++) {
+      arrOfCommands[i] = trim(arrOfCommands[i]);
+      if (i > 0 && *arrOfCommands[i-1] == 0) {
+        error();
+        return;
+      }
+    }
+int j;
+    for(j=0;j<tokens;j++){
+        // printf("b%sb",trim(arrOfCommands[i]));
+        decode(trim(arrOfCommands[j]));
         // if(val ==-1) printf("Error has occureed re ");
 
     }
@@ -216,6 +238,7 @@ int main(int argc, char** argv){
         
             printDash();
             if(getline(&input, &inputLength, stdin) > 0) {
+                if(*input==0) {error(); return 0;}
                 parallelCommands(trim(input));
             }
         }
@@ -223,9 +246,10 @@ int main(int argc, char** argv){
         char* fileName = trim(argv[1]);
         FILE *fp= fopen(fileName,"r");
         while(getline(&input, &inputLength, fp) > 0) parallelCommands(trim(input));
+        error(); 
     }else{
         error();
-        exit(1);
+        exit(0);
     }
-
+ return 0;
 }
