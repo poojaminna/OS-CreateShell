@@ -9,7 +9,7 @@
 
 const char redirec = '>';
 const char* redirection =">";
-// const char space1 = ' \t\n';
+
 const char* space = " \t\n";
 const char* ampersand = "&";
 
@@ -19,7 +19,7 @@ int totalCountOfPaths = 1;
 void error(){
     char errorMessage[25] = "An error has occurred\n";
     write(STDERR_FILENO, errorMessage, strlen(errorMessage));
-    // exit(1);
+  
 }
 
 
@@ -126,16 +126,16 @@ char* findPath(char* searchFor){
 
 int output(char* file)
 {
-    // printf("hii%shii",file);
+
   fclose(stdout);
-//   fclose(stderr);
+
   if (freopen(file, "w+", stdout) == NULL) return -1;
-//   if (freopen(file, "w+", stderr) == NULL) return -1;
+
   return 0;
 }
 
 int decode(char* command){
-    // printf("This is each command b%sb\n",command);
+ 
     if(*command == 0 ) {error(); return 0;}
 
     int tokensCount=0;
@@ -144,55 +144,49 @@ int decode(char* command){
 
     if(strchr(command, redirec)!=NULL){
         int tokensOfRedirec = numOfTokens(command, redirection);
-        printf("%d yes", tokensOfRedirec);
-        if(tokensOfRedirec!=2) {error(); return 0;}//return -1;
+      
+        if(tokensOfRedirec!=2) {error(); return 0;}
         commandDup = split(command, redirection);
         command = trim(commandDup[0]);
-        // printf("Left command b%sb\n", command);
+     
         if(*command==0) {error(); return 0;}
         right = trim(commandDup[1]);
-        // printf("File name b%sb\n",right);
-        // printf("god %d", numOfTokens(command, space)!=1 );
+       
 
         if(*right==0 || numOfTokens(right, space)!=1) {error(); }
-        // || numOfTokens(command, space)!=1
+        
     }
 
-    // printf("here: b%sb",command);
+
     tokensCount = numOfTokens(command, space);
     commandDup = malloc((tokensCount+1) * sizeof(int));
     duplicate(split(command, space), commandDup, tokensCount);
     commandDup[tokensCount]=NULL;
-    // printf("Trimmed splitted command is inside b%sb\n", commandDup[0]);
-    // printf("Trimmed splitted command is inside b%sb\n", commandDup[1]);
-    // printf("Trimmed splitted command is inside b%lub\n", sizeof(commandDup));
-    // printf("Trimmed splitted command is inside b%lub\n", commandDup[2]);
+   
      if(strcmp(trim(commandDup[0]), "exit")==0){
-        // printf("%s",commandDup[1]);
+       
         if(commandDup[1]!=NULL) error();
-        // printf("Helloooo");
-        // exit(0);
+     
         else inbuilt_exit();
      }else if(strcmp(trim(commandDup[0]),"cd")==0){
-        // printf("Heyy");
+       
         if(commandDup[2]!=NULL) {error(); return 0;}
         inbuilt_cd(commandDup[1]);
      }else if(strcmp(trim(commandDup[0]),"path")==0){
-        // printf("entered");
+       
         inbuilt_path(commandDup,tokensCount);
-        // printf("%s success",allPaths[0]);
-        // printf("%s success",allPaths[1]);
+       
      }else{
-        //  printf("hii%shii",trim(commandDup[0]));
+        
         char* executableFile = findPath(trim(commandDup[0]));
         if(executableFile==NULL) {error(); return 0;}
         int childPID = fork();
         if(childPID==0){
             if(right!=NULL) output(right);
-            // printf("Argument b%sb is\n", commandDup[0]);
+         
             execv(executableFile, commandDup);
         }else{
-            // int childProcessID = childPID;
+        
             wait(NULL);
         }
      }
@@ -201,7 +195,7 @@ int decode(char* command){
 }
 
 void parallelCommands(char* input){
-    // printf("This is the command b%sb\n",input);
+   
     int tokens = numOfTokens(input, ampersand);
     if(tokens==0) {error(); return;}
     char** arrOfCommands = malloc(tokens* sizeof(char*));
@@ -216,18 +210,15 @@ void parallelCommands(char* input){
     }
 int j;
     for(j=0;j<tokens;j++){
-        // printf("b%sb",trim(arrOfCommands[i]));
+     
         decode(trim(arrOfCommands[j]));
-        // if(val ==-1) printf("Error has occureed re ");
+    
 
     }
 }
 
 int main(int argc, char** argv){
 
-//     char* command = argv[0];
-// int val = decode(command);
-// printf("%d",val);
 
     allPaths = malloc(sizeof(char*) * totalCountOfPaths);
   allPaths[0] = "/bin";
@@ -238,14 +229,18 @@ int main(int argc, char** argv){
         
             printDash();
             if(getline(&input, &inputLength, stdin) > 0) {
-                if(*input==0) {error(); return 0;}
+               
+                if(strcmp(input, "\n") == 0) { continue;}
                 parallelCommands(trim(input));
             }
         }
     }else if(argc==2){
         char* fileName = trim(argv[1]);
         FILE *fp= fopen(fileName,"r");
-        while(getline(&input, &inputLength, fp) > 0) parallelCommands(trim(input));
+        while(getline(&input, &inputLength, fp) > 0) {
+            if(strcmp(trim(input), "") == 0) {continue;}
+        parallelCommands(trim(input));
+        }
         error(); 
     }else{
         error();
